@@ -1,4 +1,5 @@
-import {ConsumerBackend, ResourceProxy} from "../../";
+import {ResourceProxy} from "../model/resource-proxy";
+import {ConsumerBackend} from "../../service/consumer-backend";
 
 export abstract class ResourceProxyRepository {
     protected resource = ResourceProxy;

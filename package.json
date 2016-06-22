@@ -1,16 +1,22 @@
 {
-  "name": "netlogix/jsonapi",
+  "name": "@netlogix/jsonapi",
   "version": "0.0.1",
   "main": "index.js",
   "author": {
     "name": "stephan.schuler@netlogix.de"
   },
   "license": "MIT",
-  "peerDependencies": {
-    "@angular/core": "2.0.0-rc.1"
+  "dependencies": {
+    "@angular/core": "2.0.0-rc.2",
+    "@angular/http": "2.0.0-rc.2"
+  },
+  "devDependencies": {
+    "typescript": "^1.8.10"
   },
   "_id": "netlogix/jsonapi@0.0.1",
-  "scripts": {},
+  "scripts": {
+    "build": "rm -rf lib && tsc -p src"
+  },
   "maintainers": [
     {
       "name": "Stephan Schuler",

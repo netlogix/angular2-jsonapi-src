@@ -1,4 +1,6 @@
-import {Type, Payload, Property} from "../../";
+import {Type} from "./type";
+import {Payload} from "./payload";
+import {Property} from "./property";
 
 export abstract class ResourceProxy {
     public static _typeName:string = 'netlogix/resource';

@@ -1,4 +1,8 @@
-import {ConsumerBackend, Payload, Property, PropertyInterface, ResourceProxy, Uri} from "../../";
+import {PropertyInterface, Property} from "./property";
+import {Uri} from "./uri";
+import {ConsumerBackend} from "../../service/consumer-backend";
+import {ResourceProxy} from "./resource-proxy";
+import {Payload} from "./payload";
 
 export class Type {
     private _typeName:string;

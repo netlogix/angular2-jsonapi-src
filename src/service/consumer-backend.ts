@@ -1,6 +1,10 @@
 import {Http, RequestOptions, Headers} from '@angular/http';
 import {Observable, Subscriber} from "rxjs/Rx";
-import {ResourceProxy, Type, Uri, Property, Payload} from "../";
+import {ResourceProxy} from "../domain/model/resource-proxy";
+import {Type} from "../domain/model/type";
+import {Uri} from "../domain/model/uri";
+import {Payload} from "../domain/model/payload";
+import {Property} from "../domain/model/property";
 
 export class ConsumerBackend {
 
