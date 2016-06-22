@@ -1,0 +1,20 @@
+{
+  "name": "netlogix/jsonapi",
+  "version": "0.0.1",
+  "main": "index.js",
+  "author": {
+    "name": "stephan.schuler@netlogix.de"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@angular/core": "2.0.0-rc.1"
+  },
+  "_id": "netlogix/jsonapi@0.0.1",
+  "scripts": {},
+  "maintainers": [
+    {
+      "name": "Stephan Schuler",
+      "email": "stephan.schuler@netlogix.de"
+    }
+  ]
+}
