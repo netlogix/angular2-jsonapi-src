@@ -11,8 +11,8 @@
     "declaration": true
   },
   "filesGlob": [
-    "service/**",
-    "domain/**"
+    "service/**/*.ts",
+    "domain/**/*.ts"
   ],
   "files": [
     "index.ts",

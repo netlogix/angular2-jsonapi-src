@@ -15,7 +15,7 @@
   },
   "_id": "netlogix/jsonapi@0.0.1",
   "scripts": {
-    "build": "rm -rf lib && tsc -p src && cp src/package.json lib/package.json"
+    "build": "rm -Rf lib && git submodule update --init lib && cd lib && git checkout master && git pull && cd .. && tsc -p src && cp src/package.json lib/package.json && cp src/LICENSE.txt lib/LICENSE.txt"
   },
   "maintainers": [
     {
