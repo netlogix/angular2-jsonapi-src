@@ -1,5 +1,5 @@
 {
-  "name": "@netlogix/jsonapi-src",
+  "name": "@netlogix/jsonapi",
   "version": "0.0.1",
   "main": "index.js",
   "author": {
@@ -14,9 +14,6 @@
     "typescript": "^1.8.10"
   },
   "_id": "netlogix/jsonapi@0.0.1",
-  "scripts": {
-    "build": "rm -rf lib && tsc -p src && cp src/package.json lib/package.json"
-  },
   "maintainers": [
     {
       "name": "Stephan Schuler",
