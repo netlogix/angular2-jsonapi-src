@@ -1,8 +1,6 @@
-import {PropertyInterface, Property} from "./property";
-import {Uri} from "./uri";
-import {ConsumerBackend} from "../../service/consumer-backend";
-import {ResourceProxy} from "./resource-proxy";
-import {Payload} from "./payload";
+import {EventEmitter} from '@angular/core';
+import {ConsumerBackend, Payload, Property, PropertyInterface, ResourceProxy, Uri} from "../../";
+import {Observable} from "rxjs/Rx";
 
 export class Type {
     private _typeName:string;
@@ -34,7 +32,7 @@ export class Type {
     }
 
     getUri():Uri {
-        return this._uri.clone();
+        return this._uri ? this._uri.clone() : null;
     }
 
     getTypeName():string {
@@ -45,8 +43,17 @@ export class Type {
         return this._resourceProxy;
     }
 
-    createNewObject(consumerBackend:ConsumerBackend):any {
-        return new this._resourceProxy();
+    createNewObject(consumerBackend:ConsumerBackend, initializeEmptyRelationships:boolean=false):any {
+        let payload = this.getPayloadTemplate();
+        let resource = <ResourceProxy> (new this._resourceProxy());
+        let relationships = payload.relationships;
+        if (!initializeEmptyRelationships) {
+            for (let propertyName in relationships) {
+                delete relationships[propertyName].data;
+            }
+        }
+        resource.payload = payload;
+        return resource;
     }
 
     getPropertyDefinition(propertyName:string):PropertyInterface {
@@ -62,25 +69,8 @@ export class Type {
     }
 
     registerAccessesors(object:ResourceProxy) {
-        let payload = object.payload;
         for (let propertyName in this._properties) {
-            let property = <PropertyInterface>this._properties[propertyName];
-            Object.defineProperty(object, propertyName, {
-                get: function () {
-                    return object.offsetGet(propertyName);
-                },
-                set: function (value) {
-                    object.offsetSet(propertyName, value);
-                }
-            });
-            if (property.type === Property.SINGLE_RELATIONSHIP_TYPE || property.type === Property.COLLECTION_RELATIONSHIP_TYPE) {
-                Object.defineProperty(object, propertyName + 'Loaded', {
-                    get: function () {
-                        object.offsetGet(propertyName);
-                        return object.offsetLoadedEvent(propertyName);
-                    }
-                });
-            }
+            this.registerAccessesorsForProperty(object, propertyName);
         }
     }
 
@@ -88,21 +78,61 @@ export class Type {
         let payload = {
             type: this.getTypeName(),
             attributes: {},
-            relationships: {}
+            relationships: {},
+            links: {},
+            meta: {}
         };
-        for (let propertyName in this._properties) {
-            switch (this._properties[propertyName].type) {
+        let propertyChanged = new EventEmitter<string>();
+        Object.defineProperty(payload, 'propertyChanged', {
+            value: propertyChanged,
+            enumerable: false,
+            writable: false
+        });
+        for (let propertyName in this.getProperties()) {
+            let property = this.getPropertyDefinition(propertyName);
+            switch (property.type) {
                 case Property.ATTRIBUTE_TYPE:
-                    payload.attributes[propertyName] = null;
+                    payload.attributes[property.name] = null;
                     break;
                 case Property.SINGLE_RELATIONSHIP_TYPE:
-                    payload.relationships[propertyName] = {data: null};
+                    payload.relationships[property.name] = {
+                        data: null
+                    };
                     break;
                 case Property.COLLECTION_RELATIONSHIP_TYPE:
-                    payload.relationships[propertyName] = {data: []};
+                    payload.relationships[property.name] = {
+                        data: []
+                    };
                     break;
             }
         }
         return payload;
+    }
+
+    private registerAccessesorsForProperty(object:ResourceProxy, propertyName) {
+        let property = <PropertyInterface>this._properties[propertyName];
+
+        Object.defineProperty(object, propertyName, {
+            get: () => {
+                return object.offsetGet(propertyName);
+            },
+            set: (value) => {
+                return object.offsetSet(propertyName, value);
+            }
+        });
+
+        if (property.type === Property.SINGLE_RELATIONSHIP_TYPE || property.type === Property.COLLECTION_RELATIONSHIP_TYPE) {
+            Object.defineProperty(object, propertyName + 'Loaded', {
+                get: ():(Promise<ResourceProxy|ResourceProxy[]>) => {
+                    return object.offsetGetLoaded(propertyName);
+                }
+            });
+
+            Object.defineProperty(object, propertyName + 'Async', {
+                get: ():(Observable<ResourceProxy|ResourceProxy[]>) => {
+                    return object.offsetGetAsync(propertyName);
+                }
+            });
+        }
     }
 }

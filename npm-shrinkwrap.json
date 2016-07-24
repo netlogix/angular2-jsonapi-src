@@ -1,0 +1,41 @@
+{
+  "name": "@netlogix/jsonapi-src",
+  "version": "0.0.3",
+  "dependencies": {
+    "@angular/common": {
+      "version": "2.0.0-rc.4",
+      "from": "@angular/common@>=2.0.0-rc.4 <3.0.0",
+      "resolved": "https://registry.npmjs.org/@angular/common/-/common-2.0.0-rc.4.tgz"
+    },
+    "@angular/compiler": {
+      "version": "2.0.0-rc.4",
+      "from": "@angular/compiler@>=2.0.0-rc.4 <3.0.0",
+      "resolved": "https://registry.npmjs.org/@angular/compiler/-/compiler-2.0.0-rc.4.tgz"
+    },
+    "@angular/core": {
+      "version": "2.0.0-rc.4",
+      "from": "@angular/core@2.0.0-rc.4",
+      "resolved": "https://registry.npmjs.org/@angular/core/-/core-2.0.0-rc.4.tgz"
+    },
+    "@angular/http": {
+      "version": "2.0.0-rc.4",
+      "from": "@angular/http@2.0.0-rc.4",
+      "resolved": "https://registry.npmjs.org/@angular/http/-/http-2.0.0-rc.4.tgz"
+    },
+    "@angular/platform-browser": {
+      "version": "2.0.0-rc.4",
+      "from": "@angular/platform-browser@>=2.0.0-rc.4 <3.0.0",
+      "resolved": "https://registry.npmjs.org/@angular/platform-browser/-/platform-browser-2.0.0-rc.4.tgz"
+    },
+    "rxjs": {
+      "version": "5.0.0-beta.6",
+      "from": "rxjs@5.0.0-beta.6",
+      "resolved": "https://registry.npmjs.org/rxjs/-/rxjs-5.0.0-beta.6.tgz"
+    },
+    "zone.js": {
+      "version": "0.6.12",
+      "from": "zone.js@>=0.6.6 <0.7.0",
+      "resolved": "https://registry.npmjs.org/zone.js/-/zone.js-0.6.12.tgz"
+    }
+  }
+}
