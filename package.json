@@ -1,6 +1,6 @@
 {
   "name": "@netlogix/jsonapi-src",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "main": "index.js",
   "author": {
     "name": "stephan.schuler@netlogix.de"
@@ -14,7 +14,7 @@
   "devDependencies": {
     "typescript": "^1.8.10"
   },
-  "_id": "netlogix/jsonapi@0.0.5",
+  "_id": "netlogix/jsonapi@0.0.6",
   "scripts": {
     "build": "rm -Rf lib && git submodule update --init lib && cd lib && git checkout master && git pull && cd .. && tsc -p src && cp src/package.json lib/package.json && cp src/LICENSE.txt lib/LICENSE.txt"
   },

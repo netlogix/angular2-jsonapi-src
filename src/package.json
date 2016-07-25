@@ -1,6 +1,6 @@
 {
   "name": "@netlogix/jsonapi",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "main": "index.js",
   "author": {
     "name": "stephan.schuler@netlogix.de"
@@ -14,7 +14,7 @@
   "devDependencies": {
     "typescript": "^1.8.10"
   },
-  "_id": "netlogix/jsonapi@0.0.5",
+  "_id": "netlogix/jsonapi@0.0.6",
   "maintainers": [
     {
       "name": "Stephan Schuler",

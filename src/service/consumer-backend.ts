@@ -4,7 +4,7 @@ import {ResourceProxy, Type, Uri, Property, Payload} from "../";
 
 export class ConsumerBackend {
 
-    protected static contentType = 'application/vnd.api+json';
+    public contentType = 'application/vnd.api+json';
 
     protected types = {};
 
@@ -39,19 +39,22 @@ export class ConsumerBackend {
                         continue;
                     }
 
-                    let typeName:string = link.meta.resourceType;
-                    let type = this.types[typeName];
-                    if (!type || type.getUri()) {
-                        continue;
-                    }
-                    let typeObservable = this.getType(typeName);
-                    type.setUri(new Uri(link.href));
-                    typeObservable.next(type);
-                    typeObservable.complete();
+                    this.registerEndpoint(link.meta.resourceType, link.href);
                 }
                 resolve();
             });
         });
+    }
+
+    registerEndpoint(typeName:string, href:string) {
+        let type = this.types[typeName];
+        if (!type || type.getUri()) {
+            return;
+        }
+        let typeObservable = this.getType(typeName);
+        type.setUri(new Uri(href));
+        typeObservable.next(type);
+        typeObservable.complete();
     }
 
     closeEndpointDiscovery() {
@@ -128,7 +131,7 @@ export class ConsumerBackend {
         });
     }
 
-    create(type:string, id:string, defaultValue:{[key:string]:any} = {}, initializeEmptyRelationships:boolean=true):ResourceProxy {
+    create(type:string, id:string, defaultValue:{[key:string]:any} = {}, initializeEmptyRelationships:boolean = true):ResourceProxy {
         this.addJsonResultToCache({data: {type: type, id: id}}, initializeEmptyRelationships);
         let result = this.getFromUnitOfWork(type, id);
         for (let propertyName in defaultValue) {
@@ -155,7 +158,7 @@ export class ConsumerBackend {
         });
     }
 
-    protected addJsonResultToCache(result:any, initializeEmptyRelationships:boolean=false) {
+    protected addJsonResultToCache(result:any, initializeEmptyRelationships:boolean = false) {
         let postProcessing = [];
 
         for (let slotName of ['data', 'included']) {
@@ -250,9 +253,9 @@ export class ConsumerBackend {
         });
         switch (method.toLocaleLowerCase()) {
             case 'post':
-                requestOptions.headers.set('Content-Type', ConsumerBackend.contentType);
+                requestOptions.headers.set('Content-Type', this.contentType);
             case 'get':
-                requestOptions.headers.set('Accept', ConsumerBackend.contentType);
+                requestOptions.headers.set('Accept', this.contentType);
                 break;
         }
 
