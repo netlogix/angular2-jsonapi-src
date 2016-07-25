@@ -4,7 +4,7 @@ import {ResourceProxy, Type, Uri, Property, Payload} from "../";
 
 export class ConsumerBackend {
 
-    protected static contentType = 'application/vnd.api+json';
+    public contentType = 'application/vnd.api+json';
 
     protected types = {};
 
@@ -253,9 +253,9 @@ export class ConsumerBackend {
         });
         switch (method.toLocaleLowerCase()) {
             case 'post':
-                requestOptions.headers.set('Content-Type', ConsumerBackend.contentType);
+                requestOptions.headers.set('Content-Type', this.contentType);
             case 'get':
-                requestOptions.headers.set('Accept', ConsumerBackend.contentType);
+                requestOptions.headers.set('Accept', this.contentType);
                 break;
         }
 
