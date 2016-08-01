@@ -1,14 +1,14 @@
 import {Http, RequestOptions, Headers} from '@angular/http';
-import {Observable, AsyncSubject} from "rxjs/Rx";
+import {Observable, ReplaySubject} from "rxjs/Rx";
 import {ResourceProxy, Type, Uri, Property, Payload} from "../";
 
 export class ConsumerBackend {
 
-    public contentType = 'application/vnd.api+json';
+    protected static contentType = 'application/vnd.api+json';
 
     protected types = {};
 
-    protected typeObservables:{[typeName:string]:AsyncSubject<Type>} = {};
+    protected typeObservables:{[typeName:string]:ReplaySubject<Type>} = {};
 
     protected headers:{[uriPattern:string]:{[header:string]:string}} = {};
 
@@ -39,22 +39,19 @@ export class ConsumerBackend {
                         continue;
                     }
 
-                    this.registerEndpoint(link.meta.resourceType, link.href);
+                    let typeName:string = link.meta.resourceType;
+                    let type = this.types[typeName];
+                    if (!type || type.getUri()) {
+                        continue;
+                    }
+                    let typeObservable = this.getType(typeName);
+                    type.setUri(new Uri(link.href));
+                    typeObservable.next(type);
+                    typeObservable.complete();
                 }
                 resolve();
             });
         });
-    }
-
-    registerEndpoint(typeName:string, href:string) {
-        let type = this.types[typeName];
-        if (!type || type.getUri()) {
-            return;
-        }
-        let typeObservable = this.getType(typeName);
-        type.setUri(new Uri(href));
-        typeObservable.next(type);
-        typeObservable.complete();
     }
 
     closeEndpointDiscovery() {
@@ -131,7 +128,7 @@ export class ConsumerBackend {
         });
     }
 
-    create(type:string, id:string, defaultValue:{[key:string]:any} = {}, initializeEmptyRelationships:boolean = true):ResourceProxy {
+    create(type:string, id:string, defaultValue:{[key:string]:any} = {}, initializeEmptyRelationships:boolean=true):ResourceProxy {
         this.addJsonResultToCache({data: {type: type, id: id}}, initializeEmptyRelationships);
         let result = this.getFromUnitOfWork(type, id);
         for (let propertyName in defaultValue) {
@@ -140,9 +137,9 @@ export class ConsumerBackend {
         return result;
     }
 
-    protected getType(typeName:string):AsyncSubject<Type> {
+    protected getType(typeName:string):ReplaySubject<Type> {
         if (!this.typeObservables[typeName]) {
-            this.typeObservables[typeName] = new AsyncSubject<Type>();
+            this.typeObservables[typeName] = new ReplaySubject<Type>(1);
         }
         return this.typeObservables[typeName];
     }
@@ -158,7 +155,7 @@ export class ConsumerBackend {
         });
     }
 
-    protected addJsonResultToCache(result:any, initializeEmptyRelationships:boolean = false) {
+    protected addJsonResultToCache(result:any, initializeEmptyRelationships:boolean=false) {
         let postProcessing = [];
 
         for (let slotName of ['data', 'included']) {
@@ -253,9 +250,9 @@ export class ConsumerBackend {
         });
         switch (method.toLocaleLowerCase()) {
             case 'post':
-                requestOptions.headers.set('Content-Type', this.contentType);
+                requestOptions.headers.set('Content-Type', ConsumerBackend.contentType);
             case 'get':
-                requestOptions.headers.set('Accept', this.contentType);
+                requestOptions.headers.set('Accept', ConsumerBackend.contentType);
                 break;
         }
 

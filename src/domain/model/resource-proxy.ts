@@ -1,4 +1,4 @@
-import {Subject, Observable, AsyncSubject} from "rxjs/Rx";
+import {Observable, ReplaySubject} from "rxjs/Rx";
 import {Type, Payload, Property} from "../../";
 
 export abstract class ResourceProxy {
@@ -16,8 +16,7 @@ export abstract class ResourceProxy {
      * promise reflects if all related objects of the mentioned property
      * are available.
      */
-    private _relatedDataLoadedSubject:{[propertyName:string]:Subject<any>} = {};
-    private _relatedDataLoadedObservable:{[propertyName:string]:Observable<any>} = {};
+    private _relationshipLoadedSubject:{[propertyName:string]:ReplaySubject<any>} = {};
 
     get $type():Type {
         return this._type;
@@ -82,16 +81,7 @@ export abstract class ResourceProxy {
     }
 
     offsetGetAsync(propertyName:string):(Observable<ResourceProxy|ResourceProxy[]>) {
-        return new Observable<ResourceProxy|ResourceProxy[]>((observable) => {
-            try {
-                observable.next(this.offsetGet(propertyName));
-            } catch (e) {
-                let subscription = this.getRelationshipLoadedSubject(propertyName).subscribe(() => {
-                    subscription.unsubscribe();
-                    observable.next(this.offsetGet(propertyName));
-                });
-            }
-        });
+        return this.getRelationshipLoadedSubject(propertyName).asObservable();
     }
 
     offsetSet(propertyName, value) {
@@ -218,8 +208,7 @@ export abstract class ResourceProxy {
             switch (property.type) {
                 case Property.SINGLE_RELATIONSHIP_TYPE:
                 case Property.COLLECTION_RELATIONSHIP_TYPE:
-                    this._relatedDataLoadedSubject[property.name] = new AsyncSubject<any>();
-                    this._relatedDataLoadedObservable[property.name] = this._relatedDataLoadedSubject[property.name].asObservable();
+                    this._relationshipLoadedSubject[property.name] = new ReplaySubject<any>(1);
                     try {
                         this.offsetGet(propertyName);
                         this.emitRelationshipLoaded(propertyName);
@@ -234,11 +223,7 @@ export abstract class ResourceProxy {
         this.getRelationshipLoadedSubject(this._type.getPropertyDefinition(propertyName).name).next(this.offsetGet(propertyName));
     }
 
-    private getRelationshipLoadedSubject(propertyName):Subject<any> {
-        return this._relatedDataLoadedSubject[propertyName];
-    }
-
-    private getRelationshipLoadedObservable(propertyName):Observable<any> {
-        return this._relatedDataLoadedObservable[propertyName];
+    private getRelationshipLoadedSubject(propertyName):ReplaySubject<any> {
+        return this._relationshipLoadedSubject[propertyName];
     }
 }
