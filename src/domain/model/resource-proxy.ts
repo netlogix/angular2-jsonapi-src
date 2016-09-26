@@ -115,7 +115,7 @@ export abstract class ResourceProxy {
                 }
                 break;
         }
-        return this._type.consumerBackend.fetchFromUri(this._payload['relationships'][property.name]['links']['related']).map((results) => {
+        return this._type.consumerBackend.fetchContentFromUri(this._payload['relationships'][property.name]['links']['related']).map((results) => {
             switch (property.type) {
                 case Property.COLLECTION_RELATIONSHIP_TYPE:
                     this._payload['relationships'][property.name]['data'] = [];

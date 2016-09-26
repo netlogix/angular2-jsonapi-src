@@ -1,6 +1,7 @@
 import {Http, RequestOptions, Headers} from '@angular/http';
 import {Observable, ReplaySubject} from "rxjs/Rx";
 import {ResourceProxy, Type, Uri, Property, Payload} from "../";
+import {ResultPage} from "../domain/model/result-page";
 
 export class ConsumerBackend {
 
@@ -69,29 +70,37 @@ export class ConsumerBackend {
         }
     }
 
-    fetchFromUri(queryUri:Uri):Observable<ResourceProxy[]> {
+    fetchFromUri(queryUri:Uri):Observable<ResultPage> {
         return this.requestJson(queryUri).map((jsonResult:any) => {
             this.addJsonResultToCache(jsonResult);
+
+            let result = [];
+
             if (!jsonResult.data) {
-                return [];
             }
-            if (!!jsonResult.data.type && !!jsonResult.data.id) {
-                return [this.getFromUnitOfWork(jsonResult.data.type, jsonResult.data.id)];
+            else if (!!jsonResult.data.type && !!jsonResult.data.id) {
+                result = [this.getFromUnitOfWork(jsonResult.data.type, jsonResult.data.id)];
 
             } else {
-                let result = [];
                 for (let resourceDefinition of jsonResult['data']) {
                     let resource = this.getFromUnitOfWork(resourceDefinition.type, resourceDefinition.id);
                     if (resource) {
                         result.push(resource);
                     }
                 }
-                return result;
             }
+
+            return new ResultPage(result, jsonResult.links);
         });
     }
 
-    findByTypeAndFilter(typeName:string, filter?:{[key:string]:any}, include?:string[]):Observable<ResourceProxy[]> {
+    fetchContentFromUri(queryUri:Uri):Observable<ResourceProxy[]> {
+        return this.fetchFromUri(queryUri).map((resultPage:ResultPage) => {
+            return resultPage.data;
+        });
+    }
+
+    findResultPageByTypeAndFilter(typeName:string, filter?:{[key:string]:any}, include?:string[]):Observable<ResultPage> {
         return this.getType(typeName).map((type) => {
             let queryUri = type.getUri();
             let queryArguments = queryUri.getArguments();
@@ -111,6 +120,12 @@ export class ConsumerBackend {
             return this.fetchFromUri(queryUri);
 
         }).flatMap(value => value);
+    }
+
+    findByTypeAndFilter(typeName:string, filter?:{[key:string]:any}, include?:string[]):Observable<ResourceProxy[]> {
+        return this.findResultPageByTypeAndFilter(typeName, filter, include).map((resultPage:ResultPage) => {
+            return resultPage.data;
+        });
     }
 
     getFromUnitOfWork(type:string, id:string):ResourceProxy {
