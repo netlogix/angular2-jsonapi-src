@@ -155,6 +155,10 @@ export class ConsumerBackend {
         return result;
     }
 
+    getResourceType(typeName:string):Observable<Type> {
+        return this.getType(typeName).asObservable();
+    }
+
     protected getType(typeName:string):ReplaySubject<Type> {
         if (!this.typeObservables[typeName]) {
             this.typeObservables[typeName] = new ReplaySubject<Type>(1);
