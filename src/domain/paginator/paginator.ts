@@ -1,5 +1,5 @@
-import {ResourceProxy, ConsumerBackend, ResultPage, Uri} from "@netlogix/jsonapi";
 import {Observable, ReplaySubject} from 'rxjs';
+import {ResourceProxy, ConsumerBackend, ResultPage, Uri} from "../../";
 
 export class Paginator {
 

@@ -1,6 +1,6 @@
 import {EventEmitter} from '@angular/core';
-import {ConsumerBackend, Payload, Property, PropertyInterface, ResourceProxy, Uri} from "../../";
 import {Observable} from "rxjs/Rx";
+import {ConsumerBackend, Payload, Property, PropertyInterface, ResourceProxy, Uri} from "../../";
 
 export class Type {
     private _typeName:string;

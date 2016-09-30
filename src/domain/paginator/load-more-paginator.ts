@@ -1,5 +1,4 @@
-import {ResourceProxy, ConsumerBackend, ResultPage} from "@netlogix/jsonapi";
-import {Paginator} from './paginator';
+import {ResourceProxy, ConsumerBackend, ResultPage, Paginator} from "../../";
 
 export class LoadMorePaginator {
 
