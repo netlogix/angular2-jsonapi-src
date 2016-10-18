@@ -133,9 +133,13 @@ export class ConsumerBackend {
     }
 
     add(resource:ResourceProxy):Promise<any> {
+        let targetUri = resource.$type.getUri().toString();
+        return this.addToUri(resource, targetUri);
+    }
+
+    addToUri(resource:ResourceProxy, targetUri:string) {
         return new Promise((resolve, reject) => {
             let postBody = JSON.stringify({data: resource.payload});
-            let targetUri = resource.$type.getUri().toString();
             this.http.post(targetUri, postBody, this.getRequestOptions('post')).subscribe(
                 (response) => {
                     resolve(response);

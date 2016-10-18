@@ -1,4 +1,4 @@
-import {Observable, ReplaySubject} from 'rxjs';
+import {Observable, ReplaySubject, Subject} from 'rxjs';
 import {ResourceProxy, ConsumerBackend, ResultPage, Uri} from "../../";
 
 export class Paginator {
@@ -6,6 +6,9 @@ export class Paginator {
     protected resultPage: ResultPage;
 
     protected subject: ReplaySubject<any>;
+
+    protected _loading: number = 0;
+    protected loadingChange: Subject<boolean> = new Subject<boolean>();
 
     constructor(protected firstPage: string, protected consumerBackend: ConsumerBackend) {
         this.subject = new ReplaySubject<ResultPage>(1);
@@ -27,18 +30,41 @@ export class Paginator {
         }
     }
 
+    get loading(): boolean {
+        return !!this._loading;
+    }
+
+    get loading$(): Observable<boolean> {
+        return this.loadingChange.asObservable();
+    }
+
     get hasNext(): boolean {
         return this.hasLink('next');
     }
 
     public next() {
+        if (this.loading) {
+            return;
+        }
+        this.changeLoading(1);
         let nextLink = this.firstPage;
         if (this.hasLink('next')) {
             nextLink = this.resultPage.links['next'];
         }
         this.consumerBackend.fetchFromUri(new Uri(nextLink)).subscribe((resultPage: ResultPage) => {
             this.subject.next(resultPage);
+            this.changeLoading(-1);
+        }, () => {
+            this.changeLoading(-1);
         });
+    }
+
+    protected changeLoading(direction:number) {
+        let loading = this.loading;
+        this._loading += direction;
+        if (loading !== this.loading) {
+            this.loadingChange.next(this.loading);
+        }
     }
 
     protected hasLink(linkName: string): boolean {
