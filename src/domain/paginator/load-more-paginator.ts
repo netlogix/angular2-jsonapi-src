@@ -1,3 +1,4 @@
+import {Observable} from 'rxjs';
 import {ResourceProxy, ConsumerBackend, ResultPage, Paginator} from "../../";
 
 export class LoadMorePaginator {
@@ -17,6 +18,14 @@ export class LoadMorePaginator {
             this.paginator.next();
         }
         return this._data;
+    }
+
+    get loading(): boolean {
+        return this.paginator.loading;
+    }
+
+    get loading$(): Observable<boolean> {
+        return this.paginator.loading$;
     }
 
     get hasMore(): boolean {
