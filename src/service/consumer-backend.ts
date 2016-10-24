@@ -6,11 +6,11 @@ export class ConsumerBackend {
 
     public contentType = 'application/vnd.api+json';
 
+    public headers:{[uriPattern:string]:{[header:string]:string}} = {};
+
     protected types = {};
 
     protected typeObservables:{[typeName:string]:ReplaySubject<Type>} = {};
-
-    protected headers:{[uriPattern:string]:{[header:string]:string}} = {};
 
     protected unitOfWork:{[cacheIdentifier:string]:ResourceProxy} = {};
 
