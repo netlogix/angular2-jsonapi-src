@@ -140,7 +140,7 @@ export class ConsumerBackend {
     addToUri(resource:ResourceProxy, targetUri:string) {
         return new Promise((resolve, reject) => {
             let postBody = JSON.stringify({data: resource.payload});
-            this.http.post(targetUri, postBody, this.getRequestOptions('post')).subscribe(
+            this.http.post(targetUri, postBody, this.getRequestOptions('post', targetUri)).subscribe(
                 (response) => {
                     resolve(response);
                 }, (response) => {
@@ -268,7 +268,7 @@ export class ConsumerBackend {
         return type + "\n" + id;
     }
 
-    protected getRequestOptions(method:string, requestUri?:string):RequestOptions {
+    protected getRequestOptions(method:string, requestUri:string):RequestOptions {
 
         let requestOptions = this.requestOptions.merge({
             headers: new Headers(this.requestOptions.headers.toJSON())
