@@ -1,5 +1,5 @@
-import {Observable, ReplaySubject, Subject} from 'rxjs';
-import {ResourceProxy, ConsumerBackend, ResultPage, Uri} from "../../";
+import { Observable, ReplaySubject, Subject } from 'rxjs';
+import { ResourceProxy, ConsumerBackend, ResultPage, Uri } from "../../";
 
 export class Paginator {
 
@@ -8,6 +8,7 @@ export class Paginator {
     protected subject: ReplaySubject<any>;
 
     protected _loading: number = 0;
+    protected _error: boolean = false;
     protected loadingChange: Subject<boolean> = new Subject<boolean>();
 
     constructor(protected firstPage: string, protected consumerBackend: ConsumerBackend) {
@@ -19,7 +20,7 @@ export class Paginator {
     }
 
     get resultPage$(): Observable<ResultPage> {
-        return this.subject.asObservable();
+        return this.subject.asObservable().share();
     }
 
     get data(): ResourceProxy[] {
@@ -34,6 +35,10 @@ export class Paginator {
         return !!this._loading;
     }
 
+    get error(): boolean {
+        return !!this._error;
+    }
+
     get loading$(): Observable<boolean> {
         return this.loadingChange.asObservable();
     }
@@ -43,7 +48,7 @@ export class Paginator {
     }
 
     public next() {
-        if (this.loading) {
+        if (this.loading || this.error) {
             return;
         }
         this.changeLoading(1);
@@ -55,11 +60,13 @@ export class Paginator {
             this.subject.next(resultPage);
             this.changeLoading(-1);
         }, () => {
+            this._error = true;
+            this.subject.next([]);
             this.changeLoading(-1);
         });
     }
 
-    protected changeLoading(direction:number) {
+    protected changeLoading(direction: number) {
         let loading = this.loading;
         this._loading += direction;
         if (loading !== this.loading) {
