@@ -218,10 +218,10 @@ export class ConsumerBackend {
         let postProcessing = [];
 
         if (resourceDefinition.hasOwnProperty('links')) {
-            payload.links = Object.assign(payload.links, resourceDefinition.links);
+            payload.links = resourceDefinition.links;
         }
         if (resourceDefinition.hasOwnProperty('meta')) {
-            payload.meta = Object.assign(payload.meta, resourceDefinition.meta);
+            payload.meta = resourceDefinition.meta;
         }
 
         for (let propertyName in type.getProperties()) {
