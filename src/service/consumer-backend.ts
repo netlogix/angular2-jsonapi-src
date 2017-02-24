@@ -133,8 +133,16 @@ export class ConsumerBackend {
     }
 
     add(resource:ResourceProxy):Promise<any> {
-        let targetUri = resource.$type.getUri().toString();
-        return this.addToUri(resource, targetUri);
+        return new Promise((resolve, reject) => {
+            this.getType(resource.$type.getTypeName()).asObservable().subscribe(() => {
+                let targetUri = resource.$type.getUri().toString();
+                this.addToUri(resource, targetUri).then((response) => {
+                    resolve(response);
+                }).catch((error) => {
+                    reject(error);
+                });
+            });
+        });
     }
 
     addToUri(resource:ResourceProxy, targetUri:string) {
