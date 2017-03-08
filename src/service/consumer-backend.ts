@@ -1,308 +1,316 @@
-import {Http, RequestOptions, Headers} from '@angular/http';
-import {Observable, ReplaySubject} from "rxjs/Rx";
-import {ResourceProxy, Type, Uri, Property, Payload, ResultPage} from "../";
+import { Headers, Http, RequestOptions } from '@angular/http';
+import { Observable } from 'rxjs/Observable';
+import { ReplaySubject } from 'rxjs/ReplaySubject';
+import { map } from 'rxjs/operator/map';
+import { mergeMap } from 'rxjs/operator/mergeMap';
+import { Payload } from '../domain/model/payload';
+import { Property } from '../domain/model/property';
+import { ResourceProxy } from '../domain/model/resource-proxy';
+import { ResultPage } from '../domain/model/result-page';
+import { Type } from '../domain/model/type';
+import { Uri } from '../domain/model/uri';
 
 export class ConsumerBackend {
 
-    public contentType = 'application/vnd.api+json';
+  public contentType = 'application/vnd.api+json';
 
-    public headers:{[uriPattern:string]:{[header:string]:string}} = {};
+  public headers: { [uriPattern: string]: { [header: string]: string } } = {};
 
-    protected types = {};
+  protected types = {};
 
-    protected typeObservables:{[typeName:string]:ReplaySubject<Type>} = {};
+  protected typeObservables: { [typeName: string]: ReplaySubject<Type> } = {};
 
-    protected unitOfWork:{[cacheIdentifier:string]:ResourceProxy} = {};
+  protected unitOfWork: { [cacheIdentifier: string]: ResourceProxy } = {};
 
-    constructor(protected http:Http, protected requestOptions:RequestOptions) {
-    }
+  constructor(protected http: Http, protected requestOptions: RequestOptions) {
+  }
 
-    addType(type:Type) {
-        type.consumerBackend = this;
-        this.types[type.getTypeName()] = type;
-    }
+  addType(type: Type) {
+    type.consumerBackend = this;
+    this.types[type.getTypeName()] = type;
+  }
 
-    registerEndpointsByEndpointDiscovery(endpointDiscovery:Uri):Promise<any> {
-        return new Promise((resolve) => {
-            this.requestJson(endpointDiscovery).subscribe((result) => {
-                for (let link of result['links']) {
-                    if (!(link instanceof Object) || !link.meta) {
-                        continue;
-                    }
-                    if (!link.meta.type || link.meta.type !== 'resourceUri') {
-                        continue;
-                    }
-                    if (!link.meta.resourceType) {
-                        continue;
-                    }
-                    if (!link.href) {
-                        continue;
-                    }
+  registerEndpointsByEndpointDiscovery(endpointDiscovery: Uri): Promise<any> {
+    return new Promise((resolve) => {
+      this.requestJson(endpointDiscovery).subscribe((result) => {
+        for (let link of result['links']) {
+          if (!(link instanceof Object) || !link.meta) {
+            continue;
+          }
+          if (!link.meta.type || link.meta.type !== 'resourceUri') {
+            continue;
+          }
+          if (!link.meta.resourceType) {
+            continue;
+          }
+          if (!link.href) {
+            continue;
+          }
 
-                    this.registerEndpoint(link.meta.resourceType, link.href);
-                }
-                resolve();
-            });
-        });
-    }
-
-    registerEndpoint(typeName:string, href:string) {
-        let type = this.types[typeName];
-        if (!type || type.getUri()) {
-            return;
+          this.registerEndpoint(link.meta.resourceType, link.href);
         }
+        resolve();
+      });
+    });
+  }
+
+  registerEndpoint(typeName: string, href: string) {
+    let type = this.types[typeName];
+    if (!type || type.getUri()) {
+      return;
+    }
+    let typeObservable = this.getType(typeName);
+    type.setUri(new Uri(href));
+    typeObservable.next(type);
+    typeObservable.complete();
+  }
+
+  closeEndpointDiscovery() {
+    for (let typeName in this.types) {
+      let type = <Type> this.types[typeName];
+      if (!type.getUri()) {
         let typeObservable = this.getType(typeName);
-        type.setUri(new Uri(href));
+        type.setUri(new Uri('#'));
         typeObservable.next(type);
         typeObservable.complete();
+      }
     }
+  }
 
-    closeEndpointDiscovery() {
-        for (let typeName in this.types) {
-            let type = <Type> this.types[typeName];
-            if (!type.getUri()) {
-                let typeObservable = this.getType(typeName);
-                type.setUri(new Uri('#'));
-                typeObservable.next(type);
-                typeObservable.complete();
-            }
+  fetchFromUri(queryUri: Uri): Observable<ResultPage> {
+    return map.call(this.requestJson(queryUri), (jsonResult: any) => {
+      this.addJsonResultToCache(jsonResult);
+
+      let result = [];
+
+      if (!jsonResult.data) {
+      }
+      else if (!!jsonResult.data.type && !!jsonResult.data.id) {
+        result = [this.getFromUnitOfWork(jsonResult.data.type, jsonResult.data.id)];
+
+      } else {
+        for (let resourceDefinition of jsonResult['data']) {
+          let resource = this.getFromUnitOfWork(resourceDefinition.type, resourceDefinition.id);
+          if (resource) {
+            result.push(resource);
+          }
         }
-    }
+      }
 
-    fetchFromUri(queryUri:Uri):Observable<ResultPage> {
-        return this.requestJson(queryUri).map((jsonResult:any) => {
-            this.addJsonResultToCache(jsonResult);
+      return new ResultPage(result, jsonResult.links);
+    });
+  }
 
-            let result = [];
+  fetchContentFromUri(queryUri: Uri): Observable<ResourceProxy[]> {
+    return map.call(this.fetchFromUri(queryUri), (resultPage: ResultPage) => {
+      return resultPage.data;
+    });
+  }
 
-            if (!jsonResult.data) {
-            }
-            else if (!!jsonResult.data.type && !!jsonResult.data.id) {
-                result = [this.getFromUnitOfWork(jsonResult.data.type, jsonResult.data.id)];
+  findResultPageByTypeAndFilter(typeName: string, filter?: { [key: string]: any }, include?: string[]): Observable<ResultPage> {
+    return mergeMap.call(map.call(this.getType(typeName), (type) => {
+      let queryUri = type.getUri();
+      let queryArguments = queryUri.getArguments();
+      queryArguments['filter'] = queryArguments['filter'] || {};
+      for (let key in (filter || {})) {
+        queryArguments['filter'][key] = filter[key];
+      }
+      if (queryArguments['filter'] === {}) {
+        delete queryArguments['filter'];
+      }
+      queryArguments['include'] = (include || []).join(',');
+      if (!queryArguments['include']) {
+        delete queryArguments['include'];
+      }
+      queryUri.setArguments(queryArguments);
 
-            } else {
-                for (let resourceDefinition of jsonResult['data']) {
-                    let resource = this.getFromUnitOfWork(resourceDefinition.type, resourceDefinition.id);
-                    if (resource) {
-                        result.push(resource);
-                    }
-                }
-            }
+      return this.fetchFromUri(queryUri);
 
-            return new ResultPage(result, jsonResult.links);
+    }), (value => value));
+  }
+
+  findByTypeAndFilter(typeName: string, filter?: { [key: string]: any }, include?: string[]): Observable<ResourceProxy[]> {
+    return map.call(this.findResultPageByTypeAndFilter(typeName, filter, include), (resultPage: ResultPage) => {
+      return resultPage.data;
+    });
+  }
+
+  getFromUnitOfWork(type: string, id: string): ResourceProxy {
+    let cacheIdentifier = this.calculateCacheIdentifier(type, id);
+    return this.unitOfWork[cacheIdentifier];
+  }
+
+  add(resource: ResourceProxy): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.getType(resource.$type.getTypeName()).asObservable().subscribe(() => {
+        let targetUri = resource.$type.getUri().toString();
+        this.addToUri(resource, targetUri).then((response) => {
+          resolve(response);
+        }).catch((error) => {
+          reject(error);
         });
-    }
+      });
+    });
+  }
 
-    fetchContentFromUri(queryUri:Uri):Observable<ResourceProxy[]> {
-        return this.fetchFromUri(queryUri).map((resultPage:ResultPage) => {
-            return resultPage.data;
+  addToUri(resource: ResourceProxy, targetUri: string) {
+    return new Promise((resolve, reject) => {
+      let postBody = JSON.stringify({data: resource.payload});
+      this.http.post(targetUri, postBody, this.getRequestOptions('post', targetUri)).subscribe(
+        (response) => {
+          resolve(response);
+        }, (response) => {
+          reject(response);
         });
+    });
+  }
+
+  create(type: string, id: string, defaultValue: { [key: string]: any } = {}, initializeEmptyRelationships: boolean = true): ResourceProxy {
+    this.addJsonResultToCache({data: {type: type, id: id}}, initializeEmptyRelationships);
+    let result = this.getFromUnitOfWork(type, id);
+    for (let propertyName in defaultValue) {
+      result.offsetSet(propertyName, defaultValue[propertyName]);
     }
+    return result;
+  }
 
-    findResultPageByTypeAndFilter(typeName:string, filter?:{[key:string]:any}, include?:string[]):Observable<ResultPage> {
-        return this.getType(typeName).map((type) => {
-            let queryUri = type.getUri();
-            let queryArguments = queryUri.getArguments();
-            queryArguments['filter'] = queryArguments['filter'] || {};
-            for (let key in (filter || {})) {
-                queryArguments['filter'][key] = filter[key];
-            }
-            if (queryArguments['filter'] == {}) {
-                delete queryArguments['filter'];
-            }
-            queryArguments['include'] = (include || []).join(',');
-            if (!queryArguments['include']) {
-                delete queryArguments['include'];
-            }
-            queryUri.setArguments(queryArguments);
+  getResourceType(typeName: string): Observable<Type> {
+    return this.getType(typeName).asObservable();
+  }
 
-            return this.fetchFromUri(queryUri);
-
-        }).flatMap(value => value);
+  protected getType(typeName: string): ReplaySubject<Type> {
+    if (!this.typeObservables[typeName]) {
+      this.typeObservables[typeName] = new ReplaySubject<Type>(1);
     }
+    return this.typeObservables[typeName];
+  }
 
-    findByTypeAndFilter(typeName:string, filter?:{[key:string]:any}, include?:string[]):Observable<ResourceProxy[]> {
-        return this.findResultPageByTypeAndFilter(typeName, filter, include).map((resultPage:ResultPage) => {
-            return resultPage.data;
+  protected requestJson(uri: Uri): Observable<any> {
+    let uriString = uri.toString();
+
+    let requestOptions = this.getRequestOptions('get', uriString);
+
+    return map.call(this.http.get(uriString, requestOptions), (result) => {
+      let body: string = result.text();
+      return JSON.parse(body);
+    });
+  }
+
+  protected addJsonResultToCache(result: any, initializeEmptyRelationships: boolean = false) {
+    let postProcessing = [];
+
+    for (let slotName of ['data', 'included']) {
+      if (!result[slotName]) {
+        continue;
+      }
+      let slotContent = [];
+      if (result[slotName].hasOwnProperty('id') && result[slotName].hasOwnProperty('type')) {
+        slotContent = [result[slotName]];
+      } else {
+        slotContent = result[slotName];
+      }
+      for (let resourceDefinition of slotContent) {
+        let typeName = resourceDefinition.type;
+        let id = resourceDefinition.id;
+        this.getType(typeName).subscribe((type) => {
+          let resource = this.getFromUnitOfWork(typeName, id);
+          if (!resource) {
+            resource = type.createNewObject(this, initializeEmptyRelationships);
+            let cacheIdentifier = this.calculateCacheIdentifier(typeName, id);
+            this.unitOfWork[cacheIdentifier] = resource;
+            resource.payload.id = id;
+          }
+          postProcessing = [...postProcessing, ...this.assignResourceDefinitionToPayload(resource.payload, resourceDefinition, type)];
         });
+      }
     }
 
-    getFromUnitOfWork(type:string, id:string):ResourceProxy {
-        let cacheIdentifier = this.calculateCacheIdentifier(type, id);
-        return this.unitOfWork[cacheIdentifier];
+    postProcessing.forEach((callable) => {
+      callable();
+    });
+  }
+
+  protected assignResourceDefinitionToPayload(payload: Payload, resourceDefinition: Payload, type: Type): (any[]) {
+    let postProcessing = [];
+
+    if (resourceDefinition.hasOwnProperty('links')) {
+      payload.links = resourceDefinition.links;
+    }
+    if (resourceDefinition.hasOwnProperty('meta')) {
+      payload.meta = resourceDefinition.meta;
     }
 
-    add(resource:ResourceProxy):Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.getType(resource.$type.getTypeName()).asObservable().subscribe(() => {
-                let targetUri = resource.$type.getUri().toString();
-                this.addToUri(resource, targetUri).then((response) => {
-                    resolve(response);
-                }).catch((error) => {
-                    reject(error);
-                });
-            });
-        });
-    }
-
-    addToUri(resource:ResourceProxy, targetUri:string) {
-        return new Promise((resolve, reject) => {
-            let postBody = JSON.stringify({data: resource.payload});
-            this.http.post(targetUri, postBody, this.getRequestOptions('post', targetUri)).subscribe(
-                (response) => {
-                    resolve(response);
-                }, (response) => {
-                    reject(response);
-                });
-        });
-    }
-
-    create(type:string, id:string, defaultValue:{[key:string]:any} = {}, initializeEmptyRelationships:boolean = true):ResourceProxy {
-        this.addJsonResultToCache({data: {type: type, id: id}}, initializeEmptyRelationships);
-        let result = this.getFromUnitOfWork(type, id);
-        for (let propertyName in defaultValue) {
-            result.offsetSet(propertyName, defaultValue[propertyName]);
+    for (let propertyName in type.getProperties()) {
+      let property = type.getPropertyDefinition(propertyName);
+      if (property.type === Property.ATTRIBUTE_TYPE) {
+        if (!resourceDefinition.hasOwnProperty('attributes')) {
+          continue;
         }
-        return result;
-    }
-
-    getResourceType(typeName:string):Observable<Type> {
-        return this.getType(typeName).asObservable();
-    }
-
-    protected getType(typeName:string):ReplaySubject<Type> {
-        if (!this.typeObservables[typeName]) {
-            this.typeObservables[typeName] = new ReplaySubject<Type>(1);
+        if (!resourceDefinition.attributes.hasOwnProperty(property.name)) {
+          continue;
         }
-        return this.typeObservables[typeName];
-    }
+        payload.attributes[property.name] = resourceDefinition.attributes[property.name];
 
-    protected requestJson(uri:Uri):Observable<any> {
-        let uriString = uri.toString();
-
-        let requestOptions = this.getRequestOptions('get', uriString);
-
-        return this.http.get(uriString, requestOptions).map((result) => {
-            let body:string = result.text();
-            return JSON.parse(body);
-        });
-    }
-
-    protected addJsonResultToCache(result:any, initializeEmptyRelationships:boolean = false) {
-        let postProcessing = [];
-
-        for (let slotName of ['data', 'included']) {
-            if (!result[slotName]) {
-                continue;
+      } else {
+        if (!resourceDefinition.hasOwnProperty('relationships')) {
+          continue;
+        }
+        if (!resourceDefinition.relationships.hasOwnProperty(property.name)) {
+          continue;
+        }
+        if (!payload.relationships.hasOwnProperty(property.name)) {
+          payload.relationships[property.name] = {};
+        }
+        if (resourceDefinition.relationships[property.name].hasOwnProperty('links')) {
+          if (!payload.relationships[property.name].hasOwnProperty('links')) {
+            payload.relationships[property.name]['links'] = {};
+            for (let linkName in resourceDefinition.relationships[property.name].links) {
+              payload.relationships[property.name].links[linkName] = resourceDefinition.relationships[property.name].links[linkName];
             }
-            let slotContent = [];
-            if (result[slotName].hasOwnProperty('id') && result[slotName].hasOwnProperty('type')) {
-                slotContent = [result[slotName]];
-            } else {
-                slotContent = result[slotName];
-            }
-            for (let resourceDefinition of slotContent) {
-                let typeName = resourceDefinition.type;
-                let id = resourceDefinition.id;
-                this.getType(typeName).subscribe((type) => {
-                    let resource = this.getFromUnitOfWork(typeName, id);
-                    if (!resource) {
-                        resource = type.createNewObject(this, initializeEmptyRelationships);
-                        let cacheIdentifier = this.calculateCacheIdentifier(typeName, id);
-                        this.unitOfWork[cacheIdentifier] = resource;
-                        resource.payload.id = id;
-                    }
-                    postProcessing = [...postProcessing, ...this.assignResourceDefinitionToPayload(resource.payload, resourceDefinition, type)];
-                });
-            }
+          }
         }
+        if (resourceDefinition.relationships[property.name].hasOwnProperty('data')) {
+          payload.relationships[property.name]['data'] = resourceDefinition.relationships[property.name]['data'];
+          postProcessing.push(() => {
+            payload.propertyChanged.emit(property.name);
+          });
+        }
+      }
+    }
+    return postProcessing;
+  }
 
-        postProcessing.forEach((callable) => {
-            callable();
-        });
+  protected calculateCacheIdentifier(type: string, id: string) {
+    return `${type}\n${id}`;
+  }
+
+  protected getRequestOptions(method: string, requestUri: string): RequestOptions {
+
+    let requestOptions = this.requestOptions.merge({
+      headers: new Headers(this.requestOptions.headers.toJSON())
+    });
+    switch (method.toLocaleLowerCase()) {
+      case 'post':
+        requestOptions.headers.set('Content-Type', this.contentType);
+      case 'get':
+        requestOptions.headers.set('Accept', this.contentType);
+        break;
     }
 
-    protected assignResourceDefinitionToPayload(payload:Payload, resourceDefinition:Payload, type:Type):(any[]) {
-        let postProcessing = [];
 
-        if (resourceDefinition.hasOwnProperty('links')) {
-            payload.links = resourceDefinition.links;
-        }
-        if (resourceDefinition.hasOwnProperty('meta')) {
-            payload.meta = resourceDefinition.meta;
-        }
-
-        for (let propertyName in type.getProperties()) {
-            let property = type.getPropertyDefinition(propertyName);
-            if (property.type === Property.ATTRIBUTE_TYPE) {
-                if (!resourceDefinition.hasOwnProperty('attributes')) {
-                    continue;
-                }
-                if (!resourceDefinition.attributes.hasOwnProperty(property.name)) {
-                    continue;
-                }
-                payload.attributes[property.name] = resourceDefinition.attributes[property.name];
-
-            } else {
-                if (!resourceDefinition.hasOwnProperty('relationships')) {
-                    continue;
-                }
-                if (!resourceDefinition.relationships.hasOwnProperty(property.name)) {
-                    continue;
-                }
-                if (!payload.relationships.hasOwnProperty(property.name)) {
-                    payload.relationships[property.name] = {};
-                }
-                if (resourceDefinition.relationships[property.name].hasOwnProperty('links')) {
-                    if (!payload.relationships[property.name].hasOwnProperty('links')) {
-                        payload.relationships[property.name]['links'] = {};
-                        for (let linkName in resourceDefinition.relationships[property.name].links) {
-                            payload.relationships[property.name].links[linkName] = resourceDefinition.relationships[property.name].links[linkName];
-                        }
-                    }
-                }
-                if (resourceDefinition.relationships[property.name].hasOwnProperty('data')) {
-                    payload.relationships[property.name]['data'] = resourceDefinition.relationships[property.name]['data'];
-                    postProcessing.push(() => {
-                        payload.propertyChanged.emit(property.name);
-                    });
-                }
-            }
-        }
-        return postProcessing;
-    }
-
-    protected calculateCacheIdentifier(type:string, id:string) {
-        return type + "\n" + id;
-    }
-
-    protected getRequestOptions(method:string, requestUri:string):RequestOptions {
-
-        let requestOptions = this.requestOptions.merge({
-            headers: new Headers(this.requestOptions.headers.toJSON())
-        });
-        switch (method.toLocaleLowerCase()) {
-            case 'post':
-                requestOptions.headers.set('Content-Type', this.contentType);
-            case 'get':
-                requestOptions.headers.set('Accept', this.contentType);
-                break;
-        }
-
-
-        if (requestUri) {
-            for (let uriPattern in this.headers) {
-                let headersForUriPattern = this.headers[uriPattern];
+    if (requestUri) {
+      for (let uriPattern in this.headers) {
+        let headersForUriPattern = this.headers[uriPattern];
 //                if (!preg_match(uriPattern, uriString)) {
 //                    continue;
 //                }
-                for (let key in headersForUriPattern) {
-                    let value = headersForUriPattern[key];
-                    requestOptions.headers.set(key, value);
-                }
-            }
+        for (let key in headersForUriPattern) {
+          let value = headersForUriPattern[key];
+          requestOptions.headers.set(key, value);
         }
-
-        return requestOptions;
+      }
     }
+
+    return requestOptions;
+  }
 }

@@ -1,30 +1,64 @@
 {
-  "name": "@netlogix/jsonapi-src",
-  "version": "2.4.0",
-  "main": "index.js",
-  "author": {
-    "name": "stephan.schuler@netlogix.de"
+  "name": "@netlogix/jsonapi",
+  "version": "4.0.0",
+  "description": "JSON API implementation for Angular apps",
+  "main": "bundles/jsonapi.umd.js",
+  "module": "index.js",
+  "typings": "index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/netlogix/angular2-jsonapi-src.git"
   },
+  "keywords": [
+    "Angular2",
+    "JSON API",
+    "Rest"
+  ],
+  "author": "Stephan Schuler <stephan.schuler@netlogix.de>",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/netlogix/angular2-jsonapi-src/issues"
+  },
+  "homepage": "https://github.com/netlogix/angular2-jsonapi-src#readme",
   "dependencies": {
-    "@angular/core": "^2.4.0",
-    "@angular/http": "^2.4.0",
-    "rxjs": "^5.0.1"
+    "@angular/core": ">=4.0.0-beta <5.0.0",
+    "@angular/http": ">=4.0.0-beta <5.0.0",
+    "rxjs": "^5.1.0"
   },
   "devDependencies": {
-    "@angular/common": "^2.4.0",
-    "@angular/platform-browser": "^2.4.0",
-    "typescript": "^2.0.3",
-    "zone.js": "^0.7.4"
+    "@angular/common": ">=4.0.0-beta <5.0.0",
+    "@angular/compiler": ">=4.0.0-beta <5.0.0",
+    "@angular/compiler-cli": ">=4.0.0-beta <5.0.0",
+    "@angular/platform-browser": ">=4.0.0-beta <5.0.0",
+    "cpy-cli": "^1.0.1",
+    "rimraf": "^2.5.4",
+    "rollup": "^0.41.4",
+    "rxjs": "^5.1.0",
+    "tslint": "^4.4.2",
+    "typescript": "^2.1.6",
+    "uglifyjs": "^2.4.10",
+    "zone.js": "^0.7.6"
   },
-  "_id": "netlogix/jsonapi@2.4.0",
   "scripts": {
-    "build": "rm -Rf lib && git submodule update --init lib && cd lib && git checkout angular-2-4-0 && git pull && cd .. && tsc -p src && cp src/package.json lib/package.json && cp src/LICENSE.txt lib/LICENSE.txt"
+    "lint": "tslint src/**/*.ts",
+    "clean:pre": "rimraf release",
+    "clean:post": "rimraf \"src/**/*.ngfactory.ts\" && rimraf index.ngsummary.json && rimraf \"src/**/*.ngsummary.json\"",
+    "copy": "cpy LICENSE package.json README.md release",
+    "build:js": "ngc -p ./tsconfig.dist.json",
+    "build:umd": "rollup -c rollup.config.js",
+    "build:uglify": "uglifyjs -c --screw-ie8 --comments -o ./release/bundles/jsonapi.umd.min.js ./release/bundles/jsonapi.umd.js",
+    "prebuild": "npm run clean:pre",
+    "postbuild": "npm run clean:post && npm run copy",
+    "build": "npm run build:js && npm run build:umd && npm run build:uglify"
   },
   "maintainers": [
     {
       "name": "Stephan Schuler",
       "email": "stephan.schuler@netlogix.de"
+    },
+    {
+      "name": "Sascha Nowak",
+      "email": "sascha.nowak@netlogix.de"
     }
   ]
 }
