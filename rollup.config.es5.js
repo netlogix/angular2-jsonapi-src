@@ -1,6 +1,6 @@
 export default {
   entry: './build/jsonapi.js',
-  dest: './dist/jsonapi.js',
+  dest: './dist/jsonapi.es5.js',
   format: 'es',
   moduleName: 'netlogix.jsonapi',
   external: [

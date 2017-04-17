@@ -29,8 +29,6 @@ node_modules
 tmp
 typings
 dist
+build
 *.tgz
 .idea
-spec/ngc/ngfactory/
-spec/ngc/output/
-release

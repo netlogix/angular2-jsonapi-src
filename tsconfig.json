@@ -1,28 +1,12 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
-    "declaration": true,
-    "stripInternal": true,
-    "emitDecoratorMetadata": true,
+    "baseUrl": "./src",
     "experimentalDecorators": true,
-    "module": "commonjs",
     "moduleResolution": "node",
-    "noEmitOnError": false,
-    "outDir": "./release",
-    "rootDir": ".",
+    "rootDir": "./src",
     "lib": ["es2015", "dom"],
-    "target": "es5",
     "skipLibCheck": true,
-    "strictNullChecks": true,
-    "types": [
-      "node",
-      "jasmine"
-    ]
-  },
-  "exclude": [
-    "node_modules"
-  ],
-  "angularCompilerOptions": {
-    "strictMetadataEmit": true
+    // don't auto-discover @types/node, it results in a ///<reference in the .d.ts output
+    "types": []
   }
 }

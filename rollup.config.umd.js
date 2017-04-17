@@ -1,7 +1,7 @@
 export default {
   entry: './build/jsonapi.js',
-  dest: './dist/jsonapi.js',
-  format: 'es',
+  dest: './dist/jsonapi.umd.js',
+  format: 'umd',
   moduleName: 'netlogix.jsonapi',
   external: [
     '@angular/core',

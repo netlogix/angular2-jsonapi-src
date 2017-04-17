@@ -16,7 +16,7 @@ export class Uri {
     }
   }
 
-  getArguments(): any {
+  getArguments(): Object {
     return this.parseQueryString(this._queryString);
   }
 
@@ -43,7 +43,7 @@ export class Uri {
     return new Uri(this.toString());
   }
 
-  protected parseQueryString(queryString) {
+  protected parseQueryString(queryString: string): Object {
     queryString = queryString || '';
     let vars = queryString.split('&');
 
@@ -120,7 +120,6 @@ export class Uri {
       path.push(encodeURIComponent(key));
       switch (typeof value) {
         case 'object':
-        case 'array':
           this.traverseQueryString(value, after, path);
           break;
         default:
