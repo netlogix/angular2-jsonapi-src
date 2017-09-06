@@ -1,18 +1,24 @@
 {
   "compilerOptions": {
-    "declaration": true,
-    "module": "es2015",
-    "target": "es2015",
     "baseUrl": ".",
+    "declaration": true,
     "stripInternal": true,
     "experimentalDecorators": true,
+    "module": "es2015",
     "moduleResolution": "node",
     "outDir": "../build",
+    "paths": {},
     "rootDir": ".",
-    "lib": ["es2015", "dom"],
+    "sourceMap": true,
+    "inlineSources": true,
+    "target": "es2015",
+    "lib": [
+      "es2015",
+      "dom"
+    ],
     "skipLibCheck": true,
-    // don't auto-discover @types/node, it results in a ///<reference in the .d.ts output
-    "types": []
+    "strict": true,
+    "strictNullChecks": false
   },
   "files": [
     "./index.ts"

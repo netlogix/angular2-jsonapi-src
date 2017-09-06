@@ -1,4 +1,4 @@
-import { Headers, Http, RequestOptions } from '@angular/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs/Observable';
 import { ReplaySubject } from 'rxjs/ReplaySubject';
 import { map } from 'rxjs/operator/map';
@@ -14,15 +14,13 @@ export class ConsumerBackend {
 
   public contentType = 'application/vnd.api+json';
 
-  public headers: { [uriPattern: string]: { [header: string]: string } } = {};
-
-  protected types = {};
+  protected types: { [typeName: string]: Type } = {};
 
   protected typeObservables: { [typeName: string]: ReplaySubject<Type> } = {};
 
   protected unitOfWork: { [cacheIdentifier: string]: ResourceProxy } = {};
 
-  constructor(protected http: Http, protected requestOptions: RequestOptions) {
+  constructor(protected httpClient: HttpClient) {
   }
 
   addType(type: Type) {
@@ -67,7 +65,7 @@ export class ConsumerBackend {
 
   closeEndpointDiscovery() {
     for (let typeName in this.types) {
-      let type = <Type> this.types[typeName];
+      const type = <Type> this.types[typeName];
       if (!type.getUri()) {
         let typeObservable = this.getType(typeName);
         type.setUri(new Uri('#'));
@@ -81,13 +79,11 @@ export class ConsumerBackend {
     return map.call(this.requestJson(queryUri), (jsonResult: any) => {
       this.addJsonResultToCache(jsonResult);
 
-      let result = [];
+      const result: ResourceProxy[] = [];
 
       if (!jsonResult.data) {
-      }
-      else if (!!jsonResult.data.type && !!jsonResult.data.id) {
-        result = [this.getFromUnitOfWork(jsonResult.data.type, jsonResult.data.id)];
-
+      } else if (!!jsonResult.data.type && !!jsonResult.data.id) {
+        result.push(this.getFromUnitOfWork(jsonResult.data.type, jsonResult.data.id));
       } else {
         for (let resourceDefinition of jsonResult['data']) {
           let resource = this.getFromUnitOfWork(resourceDefinition.type, resourceDefinition.id);
@@ -102,15 +98,13 @@ export class ConsumerBackend {
   }
 
   fetchContentFromUri(queryUri: Uri): Observable<ResourceProxy[]> {
-    return map.call(this.fetchFromUri(queryUri), (resultPage: ResultPage) => {
-      return resultPage.data;
-    });
+    return map.call(this.fetchFromUri(queryUri), (resultPage: ResultPage) => resultPage.data);
   }
 
   findResultPageByTypeAndFilter(typeName: string, filter?: { [key: string]: any }, include?: string[]): Observable<ResultPage> {
-    return mergeMap.call(map.call(this.getType(typeName), (type) => {
+    return mergeMap.call(map.call(this.getType(typeName), (type: Type) => {
       let queryUri = type.getUri();
-      let queryArguments = queryUri.getArguments();
+      let queryArguments: any = queryUri.getArguments();
       queryArguments['filter'] = queryArguments['filter'] || {};
       for (let key in (filter || {})) {
         queryArguments['filter'][key] = filter[key];
@@ -125,8 +119,7 @@ export class ConsumerBackend {
       queryUri.setArguments(queryArguments);
 
       return this.fetchFromUri(queryUri);
-
-    }), (value => value));
+    }), ((value: any) => value));
   }
 
   findByTypeAndFilter(typeName: string, filter?: { [key: string]: any }, include?: string[]): Observable<ResourceProxy[]> {
@@ -136,7 +129,7 @@ export class ConsumerBackend {
   }
 
   getFromUnitOfWork(type: string, id: string): ResourceProxy {
-    let cacheIdentifier = this.calculateCacheIdentifier(type, id);
+    const cacheIdentifier = this.calculateCacheIdentifier(type, id);
     return this.unitOfWork[cacheIdentifier];
   }
 
@@ -144,11 +137,9 @@ export class ConsumerBackend {
     return new Promise((resolve, reject) => {
       this.getType(resource.$type.getTypeName()).asObservable().subscribe(() => {
         let targetUri = resource.$type.getUri().toString();
-        this.addToUri(resource, targetUri).then((response) => {
-          resolve(response);
-        }).catch((error) => {
-          reject(error);
-        });
+        this.addToUri(resource, targetUri)
+          .then(response => resolve(response))
+          .catch(error => reject(error));
       });
     });
   }
@@ -156,12 +147,9 @@ export class ConsumerBackend {
   addToUri(resource: ResourceProxy, targetUri: string) {
     return new Promise((resolve, reject) => {
       let postBody = JSON.stringify({data: resource.payload});
-      this.http.post(targetUri, postBody, this.getRequestOptions('post', targetUri)).subscribe(
-        (response) => {
-          resolve(response);
-        }, (response) => {
-          reject(response);
-        });
+      this.httpClient.post(targetUri, postBody, {
+        headers: new HttpHeaders({'Content-Type': this.contentType})
+      }).subscribe(response => resolve(response), response => reject(response));
     });
   }
 
@@ -186,22 +174,19 @@ export class ConsumerBackend {
   }
 
   protected requestJson(uri: Uri): Observable<any> {
-    let uriString = uri.toString();
+    const uriString = uri.toString();
 
-    let requestOptions = this.getRequestOptions('get', uriString);
-
-    return map.call(this.http.get(uriString, requestOptions), (result) => {
-      let body: string = result.text();
-      return JSON.parse(body);
+    return this.httpClient.get(uriString, {
+      headers: new HttpHeaders({'Accept': this.contentType})
     });
   }
 
   protected addJsonResultToCache(result: any, initializeEmptyRelationships: boolean = false) {
-    let postProcessing = [];
+    let postProcessing: any = [];
 
-    for (let slotName of ['data', 'included']) {
+    ['data', 'included'].forEach((slotName: string) => {
       if (!result[slotName]) {
-        continue;
+        return;
       }
       let slotContent = [];
       if (result[slotName].hasOwnProperty('id') && result[slotName].hasOwnProperty('type')) {
@@ -209,11 +194,11 @@ export class ConsumerBackend {
       } else {
         slotContent = result[slotName];
       }
-      for (let resourceDefinition of slotContent) {
-        let typeName = resourceDefinition.type;
-        let id = resourceDefinition.id;
-        this.getType(typeName).subscribe((type) => {
-          let resource = this.getFromUnitOfWork(typeName, id);
+      slotContent.forEach((resourceDefinition: Payload) => {
+        let typeName: string = resourceDefinition.type;
+        let id: string = resourceDefinition.id;
+        this.getType(typeName).subscribe((type: Type) => {
+          let resource = <ResourceProxy>this.getFromUnitOfWork(typeName, id);
           if (!resource) {
             resource = type.createNewObject(this, initializeEmptyRelationships);
             let cacheIdentifier = this.calculateCacheIdentifier(typeName, id);
@@ -222,16 +207,16 @@ export class ConsumerBackend {
           }
           postProcessing = [...postProcessing, ...this.assignResourceDefinitionToPayload(resource.payload, resourceDefinition, type)];
         });
-      }
-    }
+      });
+    });
 
-    postProcessing.forEach((callable) => {
+    postProcessing.forEach((callable: { (): void }) => {
       callable();
     });
   }
 
   protected assignResourceDefinitionToPayload(payload: Payload, resourceDefinition: Payload, type: Type): (any[]) {
-    let postProcessing = [];
+    let postProcessing: any = [];
 
     if (resourceDefinition.hasOwnProperty('links')) {
       payload.links = resourceDefinition.links;
@@ -280,37 +265,8 @@ export class ConsumerBackend {
     return postProcessing;
   }
 
-  protected calculateCacheIdentifier(type: string, id: string) {
+  protected calculateCacheIdentifier(type: string, id: string): string {
     return `${type}\n${id}`;
   }
 
-  protected getRequestOptions(method: string, requestUri: string): RequestOptions {
-
-    let requestOptions = this.requestOptions.merge({
-      headers: new Headers(this.requestOptions.headers.toJSON())
-    });
-    switch (method.toLocaleLowerCase()) {
-      case 'post':
-        requestOptions.headers.set('Content-Type', this.contentType);
-      case 'get':
-        requestOptions.headers.set('Accept', this.contentType);
-        break;
-    }
-
-
-    if (requestUri) {
-      for (let uriPattern in this.headers) {
-        let headersForUriPattern = this.headers[uriPattern];
-//                if (!preg_match(uriPattern, uriString)) {
-//                    continue;
-//                }
-        for (let key in headersForUriPattern) {
-          let value = headersForUriPattern[key];
-          requestOptions.headers.set(key, value);
-        }
-      }
-    }
-
-    return requestOptions;
-  }
 }

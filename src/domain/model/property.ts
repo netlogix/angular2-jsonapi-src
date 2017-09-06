@@ -2,16 +2,19 @@ export interface PropertyInterface {
   type: string;
   name: string;
 }
+
 export interface PropertyAttributeInterface extends PropertyInterface {
 }
+
 export interface PropertyRelationInterface extends PropertyInterface {
 }
+
 export class Property {
 
   /**
    * Those properties are "attributes" as of jsonapi.org
    */
-  public static UNDEFINED_TYPE = null;
+  public static UNDEFINED_TYPE = '';
 
   /**
    * Those properties are "attributes" as of jsonapi.org
@@ -28,9 +31,9 @@ export class Property {
    */
   public static COLLECTION_RELATIONSHIP_TYPE = 'collection';
 
-  public static attr(name: string, options?): PropertyAttributeInterface {
+  public static attr(name: string, options?: any): PropertyAttributeInterface {
     if (name && typeof name === 'object') {
-      return Property.attr(null, name);
+      return Property.attr('', name);
     } else {
       return {
         type: Property.ATTRIBUTE_TYPE,
@@ -39,9 +42,9 @@ export class Property {
     }
   }
 
-  public static hasOne(name: string, options?): PropertyRelationInterface {
+  public static hasOne(name: string, options?: any): PropertyRelationInterface {
     if (name && typeof name === 'object') {
-      return Property.attr(null, name);
+      return Property.attr('', name);
     } else {
       return {
         type: Property.SINGLE_RELATIONSHIP_TYPE,
@@ -50,9 +53,9 @@ export class Property {
     }
   }
 
-  public static hasMany(name: string, options?): PropertyRelationInterface {
+  public static hasMany(name: string, options?: any): PropertyRelationInterface {
     if (name && typeof name === 'object') {
-      return Property.attr(null, name);
+      return Property.attr('', name);
     } else {
       return {
         type: Property.COLLECTION_RELATIONSHIP_TYPE,
@@ -61,9 +64,9 @@ export class Property {
     }
   }
 
-  public static undefined(name: string, options?): PropertyRelationInterface {
+  public static undefined(name: string, options?: any): PropertyRelationInterface {
     if (name && typeof name === 'object') {
-      return Property.attr(null, name);
+      return Property.attr('', name);
     } else {
       return {
         type: Property.UNDEFINED_TYPE,

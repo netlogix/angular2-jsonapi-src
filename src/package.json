@@ -1,6 +1,6 @@
 {
   "name": "@netlogix/jsonapi",
-  "version": "4.0.1",
+  "version": "4.3.0",
   "description": "JSON API implementation for Angular apps",
   "main": "jsonapi.umd.js",
   "module": "jsonapi.es5.js",
@@ -22,8 +22,8 @@
   },
   "homepage": "https://github.com/netlogix/angular2-jsonapi-src#readme",
   "peerDependencies": {
-    "@angular/core": "^4.0.0",
-    "@angular/http": "^4.0.0",
+    "@angular/core": "^4.3.0",
+    "@angular/common": "^4.3.0",
     "rxjs": "^5.3.0"
   },
   "maintainers": [

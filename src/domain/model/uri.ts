@@ -7,7 +7,7 @@ export class Uri {
 
   constructor(uri: string) {
     this._uri = uri;
-    let matches: string[] = uri.match(/^(https?)?(:\/\/([^/]+))?([^\?]+)?(\?([^#]+))?(#(.*))*$/i);
+    let matches: string[] | null = uri.match(/^(https?)?(:\/\/([^/]+))?([^\?]+)?(\?([^#]+))?(#(.*))*$/i);
     if (matches) {
       this._schema = matches[1];
       this._host = matches[3];
@@ -75,14 +75,12 @@ export class Uri {
     return result;
   }
 
-  private addArgumentPathToResult(argument, result) {
+  private addArgumentPathToResult(argument: any, result: any) {
     if (argument.path.length === 1) {
       result[argument.path[0]] = argument.value;
     } else {
       let nestedArgument = {
-        path: argument.path.filter((a) => {
-          return true
-        }),
+        path: argument.path.filter((_: any) => true),
         value: argument.value,
       };
 
@@ -96,7 +94,7 @@ export class Uri {
   }
 
   protected buildQueryString(args: any) {
-    let after = {};
+    let after: any = {};
     this.traverseQueryString(args, after, []);
 
     let result = [];
@@ -111,12 +109,10 @@ export class Uri {
     return result.join('&');
   }
 
-  private traverseQueryString(before, after, path) {
+  private traverseQueryString(before: any, after: any, path: any) {
     for (let key in before) {
       let value = before[key];
-      path = path.filter((a) => {
-        return true
-      });
+      path = path.filter((_: any) => true);
       path.push(encodeURIComponent(key));
       switch (typeof value) {
         case 'object':

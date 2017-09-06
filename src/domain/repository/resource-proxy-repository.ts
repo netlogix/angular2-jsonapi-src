@@ -14,11 +14,11 @@ export abstract class ResourceProxyRepository {
   }
 
   findOne(filter?: { [key: string]: any }, include?: string[]): Observable<ResourceProxy> {
-    return map.call(this.findAll(filter, include), (values) => {
+    return map.call(this.findAll(filter, include), (values: ResourceProxy[]) => {
       if (values.length) {
         return values[0];
       }
-      throw 'The object of type "' + this.resource._typeName + '" does not exist.';
+      throw `The object of type "${this.resource._typeName}" does not exist.`;
     });
   }
 

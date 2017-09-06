@@ -1,11 +1,14 @@
 export default {
-  entry: './build/jsonapi.js',
-  dest: './dist/jsonapi.umd.js',
-  format: 'umd',
-  moduleName: 'netlogix.jsonapi',
+  input: './build/jsonapi.js',
+  name: 'netlogix.jsonapi',
+  exports: 'named',
+  output: {
+    file: './dist/jsonapi.umd.js',
+    format: 'umd',
+  },
   external: [
     '@angular/core',
-    '@angular/http',
+    '@angular/common',
     'Rx',
     'rxjs/Observable',
     'rxjs/Subject',
@@ -16,7 +19,8 @@ export default {
   ],
   globals: {
     '@angular/core': 'ng.core',
-    '@angular/http': 'ng.http',
+    '@angular/common': 'ng.common',
+    '@angular/common/http': 'ng.common.http',
     'rxjs/Observable': 'Rx',
     'rxjs/Subject': 'Rx',
     'rxjs/ReplaySubject': 'Rx',

@@ -17,10 +17,7 @@ export class Type {
 
   public consumerBackend: ConsumerBackend;
 
-  constructor(typeName: string,
-              resourceProxy: any,
-              properties: { [propertyName: string]: PropertyInterface } = {},
-              uri: Uri = null) {
+  constructor(typeName: string, resourceProxy: any, properties: { [propertyName: string]: PropertyInterface } = {}, uri?: Uri) {
     this._typeName = typeName;
     this._resourceProxy = resourceProxy;
     this._properties = properties;
@@ -52,9 +49,9 @@ export class Type {
     let resource = <ResourceProxy> (new this._resourceProxy());
     let relationships = payload.relationships;
     if (!initializeEmptyRelationships) {
-      for (let propertyName in relationships) {
+      Object.keys(relationships).forEach(propertyName => {
         delete relationships[propertyName].data;
-      }
+      });
     }
     resource.payload = payload;
     return resource;
@@ -79,7 +76,7 @@ export class Type {
   }
 
   getPayloadTemplate(): Payload {
-    let payload = {
+    let payload = <Payload>{
       type: this.getTypeName(),
       attributes: {},
       relationships: {},
@@ -113,7 +110,7 @@ export class Type {
     return payload;
   }
 
-  private registerAccessesorsForProperty(object: ResourceProxy, propertyName) {
+  private registerAccessesorsForProperty(object: ResourceProxy, propertyName: string) {
     let property = <PropertyInterface>this._properties[propertyName];
 
     Object.defineProperty(object, propertyName, {

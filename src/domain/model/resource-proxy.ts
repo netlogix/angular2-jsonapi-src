@@ -50,16 +50,16 @@ export abstract class ResourceProxy {
   set payload(payload: Payload) {
     this._payload = payload;
     this.registerEventEmitters();
-    this._payload.propertyChanged.subscribe((propertyName) => {
+    this._payload.propertyChanged.subscribe((propertyName: string) => {
       this.emitRelationshipLoaded(propertyName)
     });
   }
 
-  offsetExists(propertyName) {
+  offsetExists(propertyName: string) {
     return !!this._type.getPropertyDefinition(propertyName);
   }
 
-  offsetGet(propertyName) {
+  offsetGet(propertyName: string) {
     let property = this._type.getPropertyDefinition(propertyName);
     switch (property.type) {
       case Property.ATTRIBUTE_TYPE:
@@ -71,7 +71,7 @@ export abstract class ResourceProxy {
     }
   }
 
-  offsetGetLoaded(propertyName: string) {
+  offsetGetLoaded(propertyName: string): Promise<ResourceProxy | ResourceProxy[]> {
     return new Promise((resolve) => {
       try {
         resolve(this.offsetGet(propertyName));
@@ -88,7 +88,7 @@ export abstract class ResourceProxy {
     return this.getRelationshipLoadedSubject(propertyName).asObservable();
   }
 
-  offsetSet(propertyName, value) {
+  offsetSet(propertyName: string, value: any) {
     let property = this._type.getPropertyDefinition(propertyName);
     switch (property.type) {
       case Property.ATTRIBUTE_TYPE:
@@ -119,7 +119,7 @@ export abstract class ResourceProxy {
         }
         break;
     }
-    return map.call(this._type.consumerBackend.fetchContentFromUri(this._payload['relationships'][property.name]['links']['related']), (results) => {
+    return map.call(this._type.consumerBackend.fetchContentFromUri(this._payload['relationships'][property.name]['links']['related']), (results: ResourceProxy[]) => {
       switch (property.type) {
         case Property.COLLECTION_RELATIONSHIP_TYPE:
           this._payload['relationships'][property.name]['data'] = [];
@@ -141,11 +141,11 @@ export abstract class ResourceProxy {
     });
   }
 
-  private offsetGetForAttribute(propertyName): any {
+  private offsetGetForAttribute(propertyName: string): any {
     return this._payload['attributes'][propertyName];
   }
 
-  private offsetGetForSingleRelationship(propertyName): ResourceProxy {
+  private offsetGetForSingleRelationship(propertyName: string): ResourceProxy {
     let payload = <Payload> this.getRelationshipPayloadData(propertyName);
     if (payload === null) {
       return null;
@@ -153,33 +153,33 @@ export abstract class ResourceProxy {
     return this._type.consumerBackend.getFromUnitOfWork(payload.type, payload.id);
   }
 
-  private offsetGetForCollectionRelationship(propertyName): ResourceProxy[] {
-    let results = [];
-    let payloads = <Payload[]> this.getRelationshipPayloadData(propertyName);
-    (payloads || []).forEach((payload) => {
+  private offsetGetForCollectionRelationship(propertyName: string): ResourceProxy[] {
+    const results: ResourceProxy[] = [];
+    const payloads = <Payload[]> this.getRelationshipPayloadData(propertyName);
+    (payloads || []).forEach((payload: Payload) => {
       results.push(this._type.consumerBackend.getFromUnitOfWork(payload.type, payload.id));
     });
     return results;
   }
 
-  private getRelationshipPayloadData(propertyName): (Payload | Payload[]) {
+  private getRelationshipPayloadData(propertyName: string): (Payload | Payload[]) {
     if (!this._payload.relationships) {
-      throw ["The object has no relationships: ", this].join(' ');
+      throw [`The object has no relationships: `, this].join(' ');
     }
     if (!this._payload.relationships.hasOwnProperty(propertyName)) {
-      throw ["The object has no relationship named '", propertyName, "': ", this].join(' ');
+      throw [`The object has no relationship named '${propertyName}':`, this].join(' ');
     }
     if (!this._payload.relationships[propertyName].hasOwnProperty('data')) {
-      throw ["The object has an unitialized relationship named '", propertyName, "': ", this].join(' ');
+      throw [`The object has an unitialized relationship named '${propertyName}':`, this].join(' ');
     }
     return this._payload.relationships[propertyName]['data'];
   }
 
-  private offsetSetForAttribute(propertyName, value) {
+  private offsetSetForAttribute(propertyName: string, value: any) {
     this._payload['attributes'][propertyName] = value;
   }
 
-  private offsetSetForSingleRelationship(propertyName, value: ResourceProxy) {
+  private offsetSetForSingleRelationship(propertyName: string, value: ResourceProxy) {
     let identity = value ? value.$identity : null;
     if (!this._payload['relationships'][propertyName]) {
       this._payload['relationships'][propertyName] = {data: identity};
@@ -188,7 +188,7 @@ export abstract class ResourceProxy {
     }
   }
 
-  private offsetSetForCollectionelationship(propertyName, value: ResourceProxy[]) {
+  private offsetSetForCollectionelationship(propertyName: string, value: ResourceProxy[]) {
     if (!this._payload['relationships'][propertyName]) {
       this._payload['relationships'][propertyName] = {data: []};
     } else {
@@ -200,9 +200,9 @@ export abstract class ResourceProxy {
   }
 
   private registerTypeName() {
-    this._type = this.constructor['_type'];
+    this._type = (<any>this.constructor)['_type'];
     if (!this._type) {
-      throw 'This object is not registered as jsonapi resource: ' + this.constructor;
+      throw `This object is not registered as jsonapi resource: ${this.constructor}`;
     }
   }
 
@@ -223,11 +223,11 @@ export abstract class ResourceProxy {
     }
   }
 
-  private emitRelationshipLoaded(propertyName) {
+  private emitRelationshipLoaded(propertyName: string) {
     this.getRelationshipLoadedSubject(this._type.getPropertyDefinition(propertyName).name).next(this.offsetGet(propertyName));
   }
 
-  private getRelationshipLoadedSubject(propertyName): ReplaySubject<any> {
+  private getRelationshipLoadedSubject(propertyName: string): ReplaySubject<any> {
     return this._relationshipLoadedSubject[propertyName];
   }
 }
